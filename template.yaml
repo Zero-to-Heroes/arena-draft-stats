@@ -1,0 +1,147 @@
+# https://github.com/awslabs/serverless-application-model/blob/develop/versions/2016-10-31.md
+# Indentation needs to be set with spaces, because YAML...
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+    Function:
+        Environment:
+            Variables:
+                SQS_URL: !Ref SaveArenaDraftPickQueue
+
+Resources:
+    SaveArenaDraftPickQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: deferred-save-arena-draft-pick-queue
+            VisibilityTimeout: 601
+    StartSaveArenaDraftPickFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: save-pick/start-save-arena-draft-pick.default
+            Runtime: nodejs18.x
+            CodeUri: ./dist/save-pick/start-save-arena-draft-pick
+            Timeout: 5
+            Layers:
+                - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - AmazonSESFullAccess
+                - AmazonSQSFullAccess
+                - SecretsManagerReadWrite
+                - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: api-start-save-arena-draft-pick
+            AutoPublishAlias: live
+            FunctionUrlConfig:
+                AuthType: NONE
+    ProcessSaveArenaDraftPickFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: save-pick/process-save-arena-draft-pick.default
+            Runtime: nodejs18.x
+            CodeUri: ./dist/save-pick/process-save-arena-draft-pick
+            MemorySize: 128
+            ReservedConcurrentExecutions: 5
+            Layers:
+                - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - SecretsManagerReadWrite
+                - AmazonSESFullAccess
+                - AmazonSQSFullAccess
+                - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: process-save-arena-draft-pick
+            Timeout: 60
+            Events:
+                SQSEvent:
+                    Type: SQS
+                    Properties:
+                        Queue: !GetAtt SaveArenaDraftPickQueue.Arn
+                        # BatchSize: 1
+    
+    BuildHourlyArenaDraftStats:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: stats/hourly/_buld-hourly-stats.default
+            Runtime: nodejs18.x
+            Timeout: 880
+            CodeUri: ./dist/stats/hourly/_buld-hourly-stats
+            MemorySize: 2000
+            ReservedConcurrentExecutions: 5
+            Layers:
+                - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - AmazonSESFullAccess
+                - SecretsManagerReadWrite
+                - AmazonSNSReadOnlyAccess
+                - AmazonS3FullAccess
+                - AWSLambda_FullAccess
+                - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: cron-build-hourly-arena-draft-stats
+            Events:
+                LastPeriodTrigger:
+                    Type: Schedule
+                    Properties:
+                        Schedule: cron(50 * * * ? *)
+    BuildDailyAggregateStats:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: stats/daily/_build-daily-aggregate.default
+            Runtime: nodejs18.x
+            Timeout: 880
+            CodeUri: ./dist/stats/daily/_build-daily-aggregate
+            MemorySize: 4000
+            ReservedConcurrentExecutions: 5
+            Layers:
+                - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - AmazonSESFullAccess
+                - SecretsManagerReadWrite
+                - AmazonSNSReadOnlyAccess
+                - AmazonS3FullAccess
+                - AWSLambda_FullAccess
+                - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: cron-build-daily-arena-draft-stats-aggregate
+            Events:
+                LastPeriodTrigger:
+                    Type: Schedule
+                    Properties:
+                        Schedule: cron(0 5 * * ? *)
+    FinalStats:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: stats/final-stats/_build-final-stats.default
+            Runtime: nodejs18.x
+            Timeout: 880
+            CodeUri: ./dist/stats/final-stats/_build-final-stats
+            MemorySize: 1000
+            ReservedConcurrentExecutions: 5
+            Layers:
+                - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - AmazonSESFullAccess
+                - SecretsManagerReadWrite
+                - AmazonSNSReadOnlyAccess
+                - AmazonS3FullAccess
+                - AWSLambda_FullAccess
+                - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: cron-arena-draft-final-stats
+            Events:
+                LastPeriodTrigger:
+                    Type: Schedule
+                    Properties:
+                        # Cron that runs every hour at 25 minutes past the hour
+                        Schedule: cron(25 * * * ? *)
