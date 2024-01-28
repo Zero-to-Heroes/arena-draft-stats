@@ -50,7 +50,7 @@ const dispatchEvents = async (context: Context) => {
 				Payload: JSON.stringify(newEvent),
 			})
 			.promise();
-		console.log('\tinvocation result', result);
+		// console.log('\tinvocation result', result);
 		await sleep(50);
 	}
 };

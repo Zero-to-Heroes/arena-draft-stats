@@ -29,7 +29,7 @@ export default async (event, context): Promise<any> => {
 // For now we don't save metadata like the player class, as we will need to retrieve the run
 // full info in any case to build the stats. So we can just retrieve the class from the run
 const processEvents = async (picks: DraftPick[], mysql: ServerlessMysql) => {
-	console.log('saving picks', picks);
+	// console.log('saving picks', picks);
 	if (!picks.length) {
 		return;
 	}
