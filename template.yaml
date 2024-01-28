@@ -61,7 +61,8 @@ Resources:
                     Type: SQS
                     Properties:
                         Queue: !GetAtt SaveArenaDraftPickQueue.Arn
-                        # BatchSize: 1
+                        BatchSize: 30
+                        MaximumBatchingWindowInSeconds: 1
     
     BuildHourlyArenaDraftStats:
         Type: AWS::Serverless::Function

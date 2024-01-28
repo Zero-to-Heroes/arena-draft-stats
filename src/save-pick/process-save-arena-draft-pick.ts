@@ -4,13 +4,18 @@ import { ServerlessMysql } from 'serverless-mysql';
 import { DraftPick } from '../model';
 
 export default async (event, context): Promise<any> => {
+	// console.log('processing event', event);
 	const events: readonly DraftPick[] = (event.Records as any[])
 		.map((event) => JSON.parse(event.body))
 		.reduce((a, b) => a.concat(b), []);
 	const mysql = await getConnection();
-	for (const ev of events) {
-		await processEvent(ev, mysql);
-	}
+	events.forEach((e) => {
+		if (!e.playerClass?.length) {
+			console.error('missing playerClass', e);
+		}
+	});
+	const validEvents = events.filter((ev) => ev.playerClass?.length);
+	await processEvents(validEvents, mysql);
 	await mysql.end();
 
 	const response = {
@@ -23,19 +28,23 @@ export default async (event, context): Promise<any> => {
 
 // For now we don't save metadata like the player class, as we will need to retrieve the run
 // full info in any case to build the stats. So we can just retrieve the class from the run
-const processEvent = async (pick: DraftPick, mysql: ServerlessMysql) => {
+const processEvents = async (picks: DraftPick[], mysql: ServerlessMysql) => {
+	console.log('saving picks', picks);
+	if (!picks.length) {
+		return;
+	}
 	const query = `
-		INSERT INTO arena_draft_pick
-		(creationDate, playerClass, runId, pickNumber, options, pick)
-		VALUES (?, ?, ?, ?, ?, ?)	
-	`;
-	const queryArgs = [
+        INSERT INTO arena_draft_pick
+        (creationDate, playerClass, runId, pickNumber, options, pick)
+        VALUES ?
+    `;
+	const queryArgs = picks.map((pick) => [
 		new Date(),
 		pick.playerClass,
 		pick.runId,
 		pick.pickNumber,
 		JSON.stringify(pick.options),
 		pick.pick,
-	];
-	await mysql.query(query, queryArgs);
+	]);
+	await mysql.query(query, [queryArgs]);
 };
