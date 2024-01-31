@@ -22,6 +22,7 @@ export default async (event, context: Context): Promise<any> => {
 	const cleanup = logBeforeTimeout(context);
 	const timePeriod: TimePeriod = event.timePeriod;
 	const patchInfo = await getLastArenaPatch();
+	console.log('patchInfo', patchInfo);
 	await buildStatsForPeriod(timePeriod, patchInfo, s3);
 
 	cleanup();

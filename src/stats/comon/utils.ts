@@ -143,7 +143,7 @@ const getHourlyKeysForPatchDay = (
 	// The keys should start at the hour following the patch release, up until 23:00 of that day
 	// E.g. if the patch was released at 2020-05-01 13:00, we want to load the data from
 	// 2020-05-01 14:00 to 2020-05-01 23:00
-	const startHour = patchDate.getHours() + 1;
+	const startHour = patchDate.getHours() + 2;
 	for (let i = startHour; i < 24; i++) {
 		const date = new Date(patchDate.getTime());
 		date.setHours(i);
