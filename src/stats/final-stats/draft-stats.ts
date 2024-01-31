@@ -74,7 +74,7 @@ const loadDraftStatsForPeriod = async (
 	s3: S3,
 ): Promise<readonly DraftStatsByContextAndPeriod[]> => {
 	const fileKeys = getFileKeysToLoad(timePeriod, winNumber, context, patchInfo);
-	console.log('file keys', timePeriod, context, fileKeys);
+	// console.log('file keys', timePeriod, context, fileKeys);
 	const rawData: readonly string[] = await Promise.all(
 		fileKeys.map((fileKey) => s3.readGzipContent(ARENA_STATS_BUCKET, fileKey, 1, false, 300)),
 	);
