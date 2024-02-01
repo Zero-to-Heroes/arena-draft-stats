@@ -1,5 +1,6 @@
-import { S3, logBeforeTimeout } from '@firestone-hs/aws-lambda-utils';
+import { S3, logBeforeTimeout, sleep } from '@firestone-hs/aws-lambda-utils';
 import { Context } from 'aws-lambda';
+import AWS from 'aws-sdk';
 import {
 	DraftStatsByContextAndPeriod,
 	InternalArenaMatchStatsDbRow,
@@ -12,15 +13,16 @@ import { buildHourlyDraftStats } from './draft-stats';
 import { saveDraftStats } from './s3-save';
 
 const s3 = new S3();
+const lambda = new AWS.Lambda();
 
 export default async (event, context: Context): Promise<any> => {
 	const cleanup = logBeforeTimeout(context);
 	// await allCards.initializeCardsDb();
 
-	// if (event.catchUp) {
-	// 	await dispatchCatchUpEvents(context, +event.catchUp);
-	// 	return;
-	// }
+	if (event.catchUp) {
+		await dispatchCatchUpEvents(context, +event.catchUp);
+		return;
+	}
 
 	const processStartDate = buildProcessStartDate(event);
 	const processEndDate = new Date(processStartDate);
@@ -68,4 +70,42 @@ const keepOnlyEndedRuns = (rows: readonly InternalArenaMatchStatsDbRow[], minWin
 		.map((row) => row.runId);
 	const uniqueRunIds = [...new Set(runIds)];
 	return uniqueRunIds;
+};
+
+const dispatchCatchUpEvents = async (context: Context, daysInThePast: number) => {
+	// Build a list of hours for the last `daysInThePast` days, in the format YYYY-MM-ddTHH:mm:ss.sssZ
+	const now = new Date();
+	const hours = [];
+	for (let i = 0; i < 24 * daysInThePast; i++) {
+		const baseDate = new Date(now);
+		baseDate.setMinutes(0);
+		baseDate.setSeconds(0);
+		baseDate.setMilliseconds(0);
+		const hour = new Date(baseDate.getTime() - i * 60 * 60 * 1000);
+		hours.push(hour.toISOString());
+	}
+
+	for (const targetDate of hours) {
+		console.log('dispatching catch-up for date', targetDate);
+		const newEvent = {
+			targetDate: targetDate,
+		};
+		const params = {
+			FunctionName: context.functionName,
+			InvocationType: 'Event',
+			LogType: 'Tail',
+			Payload: JSON.stringify(newEvent),
+		};
+		// console.log('\tinvoking lambda', params);
+		const result = await lambda
+			.invoke({
+				FunctionName: context.functionName,
+				InvocationType: 'Event',
+				LogType: 'Tail',
+				Payload: JSON.stringify(newEvent),
+			})
+			.promise();
+		// console.log('\tinvocation result', result);
+		await sleep(50);
+	}
 };

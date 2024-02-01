@@ -59,7 +59,10 @@ const performRowsProcessing = async (
 				console.log('fields', fields);
 			})
 			.on('result', async (row: InternalDraftPickDbRow) => {
-				rowsToProcess.push(row);
+				// Filter out bogus data
+				if (row.options?.includes(row.pick)) {
+					rowsToProcess.push(row);
+				}
 			})
 			.on('end', async () => {
 				console.log('end', rowsToProcess.length);
