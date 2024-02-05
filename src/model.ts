@@ -29,3 +29,13 @@ export interface PickStat {
 }
 
 export type TimePeriod = 'past-20' | 'past-7' | 'past-3' | 'last-patch';
+
+export interface Picks {
+	readonly runId: string;
+	readonly picks: readonly Pick[];
+}
+export interface Pick {
+	readonly pickNumber: number;
+	readonly options: string[];
+	readonly pick: string;
+}
