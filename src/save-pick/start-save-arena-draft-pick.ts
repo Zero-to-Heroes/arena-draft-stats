@@ -4,6 +4,7 @@ import { DraftPick } from '../model';
 const sqs = new Sqs();
 
 export default async (event): Promise<any> => {
+	const start = Date.now();
 	const headers = {
 		'Access-Control-Allow-Headers':
 			'Accept,Accept-Language,Content-Language,Content-Type,Authorization,x-correlation-id,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
@@ -21,9 +22,18 @@ export default async (event): Promise<any> => {
 		return response;
 	}
 
+	if (Date.now() - start > 2000) {
+		console.debug('taking a long time', event);
+	}
 	// console.debug('received event', event);
 	const input: DraftPick = JSON.parse(event.body);
+	if (Date.now() - start > 2000) {
+		console.debug('taking a very long time', event, input);
+	}
 	await sqs.sendMessageToQueue(input, process.env.SQS_URL);
+	if (Date.now() - start > 2000) {
+		console.debug('taking a very very long time', event, input);
+	}
 	return {
 		statusCode: 200,
 		headers: headers,
