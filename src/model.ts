@@ -39,3 +39,11 @@ export interface Pick {
 	readonly options: string[];
 	readonly pick: string;
 }
+
+export interface DraftDeckStats {
+	readonly runId: string;
+	readonly userId: string;
+	readonly playerClass: string;
+	readonly deckImpact: number;
+	readonly deckScore: number;
+}

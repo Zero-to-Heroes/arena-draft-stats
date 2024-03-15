@@ -1,6 +1,6 @@
 {
 	"name": "@firestone-hs/arena-draft-pick",
-	"version": "1.0.5",
+	"version": "1.0.7",
 	"description": "",
 	"scripts": {
 		"lint": "eslint --color --fix --ext .ts .",

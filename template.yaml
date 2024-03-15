@@ -85,6 +85,49 @@ Resources:
             AutoPublishAlias: live
             FunctionUrlConfig:
                 AuthType: NONE
+                
+    SaveArenaDraftStats:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: draft-stat/save-draft-stat.default
+            Runtime: nodejs18.x
+            CodeUri: ./dist/draft-stat/save-draft-stat
+            Timeout: 5
+            # Layers:
+            #     - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - AmazonSESFullAccess
+                - AmazonSQSFullAccess
+                - SecretsManagerReadWrite
+                - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: api-save-draft-stat
+            AutoPublishAlias: live
+            FunctionUrlConfig:
+                AuthType: NONE
+    RetrieveArenaDraftStats:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: draft-stat/retrieve-draft-stat.default
+            Runtime: nodejs18.x
+            CodeUri: ./dist/draft-stat/retrieve-draft-stat
+            Timeout: 25
+            # Layers:
+            #     - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - AmazonSESFullAccess
+                - AmazonSQSFullAccess
+                - SecretsManagerReadWrite
+                - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: api-retrieve-draft-stat
+            AutoPublishAlias: live
+            FunctionUrlConfig:
+                AuthType: NONE
 
     BuildHourlyArenaDraftStats:
         Type: AWS::Serverless::Function
