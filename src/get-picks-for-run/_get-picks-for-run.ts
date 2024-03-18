@@ -12,17 +12,15 @@ export const s3 = new S3();
 export default async (event, context): Promise<any> => {
 	console.debug('handling event', event);
 	const runId = event.rawPath.split('/').slice(-1)[0];
-
+	console.debug('runId', runId);
 	const mysql = await getConnection();
-	const query = `SELECT * FROM arena_draft_pick WHERE runId = ?`;
-	console.debug('query', query);
-	const queryResult: readonly any[] = await mysql.query(query, [runId]);
-	console.debug('result', queryResult);
+	const rawPicks = await getDraftPicks(runId, mysql);
+	console.debug('rawPicks', rawPicks);
 	await mysql.end();
 
 	const result: Picks = {
 		runId: runId,
-		picks: queryResult.map((r) => {
+		picks: rawPicks.map((r) => {
 			const pick: Pick = {
 				pickNumber: r.pickNumber,
 				options: JSON.parse(r.options),
@@ -31,6 +29,24 @@ export default async (event, context): Promise<any> => {
 			return pick;
 		}),
 	};
-
+	console.debug('result', result);
 	return { statusCode: 200, body: JSON.stringify(result) };
+};
+
+const getDraftPicks = async (runId: string, mysql): Promise<readonly any[]> => {
+	// If we get a runId as a number, this means we're getting the info for a high-wins run, so we first retrieve the runId
+	if (!runId?.includes('-')) {
+		const query = `SELECT runId FROM arena_stats_by_run WHERE id = ?`;
+		const queryResult: readonly any[] = await mysql.query(query, [runId]);
+		if (queryResult.length === 0) {
+			return [];
+		}
+		runId = queryResult[0].runId;
+	}
+
+	const query = `SELECT * FROM arena_draft_pick WHERE runId = ?`;
+	console.debug('query', query);
+	const queryResult: readonly any[] = await mysql.query(query, [runId]);
+	console.debug('result', queryResult);
+	return queryResult;
 };
