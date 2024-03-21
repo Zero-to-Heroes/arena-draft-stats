@@ -24,6 +24,14 @@ export default async (event): Promise<any> => {
 
 	// console.debug('received event', event);
 	const input: DraftDeckStats = JSON.parse(event.body);
+	if (!input.userId || !input.playerClass || !input.runId || !input.deckImpact || !input.deckScore) {
+		return {
+			statusCode: 400,
+			headers: headers,
+			body: 'missing data',
+		};
+	}
+
 	await saveDraftDeckStats(input);
 	return {
 		statusCode: 200,
