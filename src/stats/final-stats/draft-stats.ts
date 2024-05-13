@@ -5,15 +5,27 @@ import { ARENA_STATS_BUCKET, CONTEXTS, MIN_WINS } from '../comon/config';
 import { getFileKeysToLoad } from '../comon/utils';
 import { saveDraftStats } from './s3-save';
 
-export const buildStatsForPeriod = async (timePeriod: TimePeriod, patchInfo: PatchInfo, s3: S3) => {
-	const globalStats = await buildStatsForContext(timePeriod, 'global', patchInfo, null, s3);
+export const buildStatsForPeriod = async (
+	timePeriod: TimePeriod,
+	patchInfo: PatchInfo,
+	currentSeasonPatchInfo: PatchInfo,
+	s3: S3,
+) => {
+	const globalStats = await buildStatsForContext(timePeriod, 'global', patchInfo, currentSeasonPatchInfo, null, s3);
 	await saveDraftStats(globalStats, timePeriod, s3);
 
 	for (const context of CONTEXTS) {
 		if (context === 'global') {
 			continue;
 		}
-		const stat = await buildStatsForContext(timePeriod, context, patchInfo, globalStats, s3);
+		const stat = await buildStatsForContext(
+			timePeriod,
+			context,
+			patchInfo,
+			currentSeasonPatchInfo,
+			globalStats,
+			s3,
+		);
 		await saveDraftStats(stat, timePeriod, s3);
 	}
 };
@@ -22,6 +34,7 @@ const buildStatsForContext = async (
 	timePeriod: TimePeriod,
 	context: string,
 	patchInfo: PatchInfo,
+	currentSeasonPatchInfo: PatchInfo,
 	globalStats: DraftStatsByContext,
 	s3: S3,
 ): Promise<DraftStatsByContext> => {
@@ -32,6 +45,7 @@ const buildStatsForContext = async (
 			context,
 			winNumber,
 			patchInfo,
+			currentSeasonPatchInfo,
 			s3,
 		);
 		for (const stat of periodStats) {
@@ -71,9 +85,10 @@ const loadDraftStatsForPeriod = async (
 	context: string,
 	winNumber: number,
 	patchInfo: PatchInfo,
+	currentSeasonPatchInfo: PatchInfo,
 	s3: S3,
 ): Promise<readonly DraftStatsByContextAndPeriod[]> => {
-	const fileKeys = getFileKeysToLoad(timePeriod, winNumber, context, patchInfo);
+	const fileKeys = getFileKeysToLoad(timePeriod, winNumber, context, patchInfo, currentSeasonPatchInfo);
 	// console.log('file keys', timePeriod, context, fileKeys);
 	const rawData: readonly string[] = await Promise.all(
 		fileKeys.map((fileKey) => s3.readGzipContent(ARENA_STATS_BUCKET, fileKey, 1, false, 300)),

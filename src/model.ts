@@ -28,7 +28,7 @@ export interface PickStat {
 	picked: number;
 }
 
-export type TimePeriod = 'past-20' | 'past-7' | 'past-3' | 'last-patch';
+export type TimePeriod = 'past-20' | 'past-7' | 'past-3' | 'last-patch' | 'current-season';
 
 export interface Picks {
 	readonly runId: string;
