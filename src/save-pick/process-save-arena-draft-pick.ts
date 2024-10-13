@@ -8,13 +8,14 @@ export default async (event, context): Promise<any> => {
 	const events: readonly DraftPick[] = (event.Records as any[])
 		.map((event) => JSON.parse(event.body))
 		.reduce((a, b) => a.concat(b), []);
-	const mysql = await getConnection();
 	events.forEach((e) => {
 		if (!e.playerClass?.length) {
 			console.error('missing playerClass', e);
 		}
 	});
 	const validEvents = events.filter((ev) => ev.playerClass?.length);
+	console.debug('validEvents', validEvents.length);
+	const mysql = await getConnection();
 	await processEvents(validEvents, mysql);
 	await mysql.end();
 
