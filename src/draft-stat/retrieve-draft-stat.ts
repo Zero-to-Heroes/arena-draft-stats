@@ -42,6 +42,7 @@ const retrieveDeckStats = async (userId: string, userName: string) => {
 		WHERE userId IN (${userIds.map((id) => `'${id}'`).join(', ')})
     `;
 	const result: any[] = await mysql.query(query);
+	await mysql.end();
 	return result.map(
 		(r) =>
 			({
