@@ -1,8 +1,7 @@
-import { Sqs, getConnection } from '@firestone-hs/aws-lambda-utils';
+import { getConnection } from '@firestone-hs/aws-lambda-utils';
 import { DraftDeckStats } from '../model';
 
-const sqs = new Sqs();
-
+// TODO: might be worth using SQS + batch here?
 export default async (event): Promise<any> => {
 	const start = Date.now();
 	const headers = {
