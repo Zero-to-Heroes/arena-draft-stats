@@ -36,7 +36,7 @@ export interface Picks {
 }
 export interface Pick {
 	readonly pickNumber: number;
-	readonly options: string[];
+	readonly options: readonly string[];
 	readonly pick: string;
 }
 
