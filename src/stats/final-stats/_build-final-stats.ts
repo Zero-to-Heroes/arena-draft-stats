@@ -27,10 +27,11 @@ export default async (event, context: Context): Promise<any> => {
 
 	const cleanup = logBeforeTimeout(context);
 	const timePeriod: TimePeriod = event.timePeriod;
+	const gameMode: 'arena' | 'arena-underground' | 'all' = event.gameMode;
 	const patchInfo = await getLastArenaPatch();
 	const currentSeasonPatchInfo = await getArenaCurrentSeasonPatch();
 	console.log('patchInfo', patchInfo);
-	await buildStatsForPeriod(timePeriod, patchInfo, currentSeasonPatchInfo, s3);
+	await buildStatsForPeriod(gameMode, timePeriod, patchInfo, currentSeasonPatchInfo, s3);
 
 	cleanup();
 	return { statusCode: 200, body: null };
@@ -38,27 +39,24 @@ export default async (event, context: Context): Promise<any> => {
 
 const dispatchEvents = async (context: Context) => {
 	const allTimePeriod: readonly TimePeriod[] = ['last-patch', 'past-20', 'past-7', 'past-3', 'current-season'];
+	const allGameModes: readonly string[] = ['arena', 'arena-underground', 'all'];
 	for (const timePeriod of allTimePeriod) {
-		const newEvent = {
-			dailyProcessing: true,
-			timePeriod: timePeriod,
-		};
-		const params = {
-			FunctionName: context.functionName,
-			InvocationType: 'Event',
-			LogType: 'Tail',
-			Payload: JSON.stringify(newEvent),
-		};
-		console.log('\tinvoking lambda', params);
-		const result = await lambda
-			.invoke({
+		for (const gameMode of allGameModes) {
+			const newEvent = {
+				dailyProcessing: true,
+				timePeriod: timePeriod,
+				gameMode: gameMode,
+			};
+			const params = {
 				FunctionName: context.functionName,
 				InvocationType: 'Event',
 				LogType: 'Tail',
 				Payload: JSON.stringify(newEvent),
-			})
-			.promise();
-		// console.log('\tinvocation result', result);
-		await sleep(50);
+			};
+			console.log('\tinvoking lambda', params);
+			const result = await lambda.invoke(params).promise();
+			// console.log('\tinvocation result', result);
+			await sleep(50);
+		}
 	}
 };

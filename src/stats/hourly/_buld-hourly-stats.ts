@@ -21,15 +21,34 @@ export default async (event, context: Context): Promise<any> => {
 
 	if (event.catchUp) {
 		await dispatchCatchUpEvents(context, +event.catchUp);
+		cleanup();
 		return;
 	}
 
+	if (!event.gameMode) {
+		await dispatchAllEvents(context, event);
+		cleanup();
+		return;
+	}
+
+	const gameMode: 'arena' | 'arena-underground' = event.gameMode ?? 'arena';
 	const processStartDate = buildProcessStartDate(event);
 	const processEndDate = new Date(processStartDate);
 	processEndDate.setHours(processEndDate.getHours() + 1);
 
 	const hourlyRows: readonly InternalArenaMatchStatsDbRow[] = await loadArenaMatches(
+		gameMode,
 		processStartDate,
+		processEndDate,
+	);
+	console.log(
+		'loaded',
+		hourlyRows.length,
+		'rows for game mode',
+		gameMode,
+		'between',
+		processStartDate,
+		'and',
 		processEndDate,
 	);
 
@@ -39,7 +58,7 @@ export default async (event, context: Context): Promise<any> => {
 		const pickInfos: readonly InternalDraftPickDbRow[] = await loadDraftPicks(runsOverDuringLastHour);
 		const allRunsStats: readonly DraftStatsByContextAndPeriod[] = buildHourlyDraftStats(pickInfos, minWin);
 		for (const stat of allRunsStats) {
-			await saveDraftStats(stat, minWin, processStartDate, s3);
+			await saveDraftStats(stat, minWin, gameMode, processStartDate, s3);
 		}
 	}
 
@@ -72,6 +91,27 @@ const keepOnlyEndedRuns = (rows: readonly InternalArenaMatchStatsDbRow[], minWin
 	return uniqueRunIds;
 };
 
+const dispatchAllEvents = async (context: Context, event) => {
+	const gameModes = ['arena', 'arena-underground'];
+	for (const gameMode of gameModes) {
+		console.log('dispatching event for game mode', gameMode);
+		const newEvent = {
+			gameMode: gameMode,
+			targetDate: event.targetDate,
+		};
+		const params = {
+			FunctionName: context.functionName,
+			InvocationType: 'Event',
+			LogType: 'Tail',
+			Payload: JSON.stringify(newEvent),
+		};
+		// console.log('\tinvoking lambda', params);
+		const result = await lambda.invoke(params).promise();
+		// console.log('\tinvocation result', result);
+		await sleep(50);
+	}
+};
+
 const dispatchCatchUpEvents = async (context: Context, daysInThePast: number) => {
 	// Build a list of hours for the last `daysInThePast` days, in the format YYYY-MM-ddTHH:mm:ss.sssZ
 	const now = new Date();
@@ -97,14 +137,7 @@ const dispatchCatchUpEvents = async (context: Context, daysInThePast: number) =>
 			Payload: JSON.stringify(newEvent),
 		};
 		// console.log('\tinvoking lambda', params);
-		const result = await lambda
-			.invoke({
-				FunctionName: context.functionName,
-				InvocationType: 'Event',
-				LogType: 'Tail',
-				Payload: JSON.stringify(newEvent),
-			})
-			.promise();
+		const result = await lambda.invoke(params).promise();
 		// console.log('\tinvocation result', result);
 		await sleep(50);
 	}

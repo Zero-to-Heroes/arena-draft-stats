@@ -5,13 +5,14 @@ import { buildFileKeys, buildFileNamesForGivenDay } from '../comon/utils';
 import { saveDraftStats } from './s3-save';
 
 export const buildDailyAggregate = async (
+	gameMode: 'arena' | 'arena-underground',
 	minWin: number,
 	context: string,
 	targetDate: string,
 	s3: S3,
 ): Promise<readonly DraftStatsByContextAndPeriod[]> => {
 	const fileNames = buildFileNamesForGivenDay(targetDate);
-	const fileKeys = buildFileKeys('hourly', minWin, context, fileNames);
+	const fileKeys = buildFileKeys('hourly', gameMode, minWin, context, fileNames);
 	const hourlyRawData: readonly string[] = await Promise.all(
 		fileKeys.map((fileKey) => s3.readGzipContent(ARENA_STATS_BUCKET, fileKey, 1, false, 300)),
 	);
@@ -32,7 +33,7 @@ export const buildDailyAggregate = async (
 		dataPoints: mergedStats.map((stat) => stat.offered).reduce((a, b) => a + b, 0),
 	};
 
-	await saveDraftStats(aggregatedData, minWin, targetDate, s3);
+	await saveDraftStats(aggregatedData, gameMode, minWin, targetDate, s3);
 };
 
 const mergeStats = (stats: readonly DraftCardStat[]): DraftCardStat[] => {

@@ -14,18 +14,47 @@ export default async (event, context: Context): Promise<any> => {
 
 	if (event.catchUp) {
 		await dispatchCatchUpEvents(context, +event.catchUp);
+		cleanup();
+		return;
+	}
+
+	if (!event.gameMode) {
+		await dispatchAllEvents(context, event);
+		cleanup();
 		return;
 	}
 
 	const targetDate: string = event.targetDate || yesterdayDate();
+	const gameMode: 'arena' | 'arena-underground' = event.gameMode;
 	for (const minWin of MIN_WINS) {
 		for (const context of CONTEXTS) {
-			await buildDailyAggregate(minWin, context, targetDate, s3);
+			await buildDailyAggregate(gameMode, minWin, context, targetDate, s3);
 		}
 	}
 
 	cleanup();
 	return { statusCode: 200, body: null };
+};
+
+const dispatchAllEvents = async (context: Context, event) => {
+	const gameModes = ['arena', 'arena-underground'];
+	for (const gameMode of gameModes) {
+		console.log('dispatching event for game mode', gameMode);
+		const newEvent = {
+			gameMode: gameMode,
+			targetDate: event.targetDate,
+		};
+		const params = {
+			FunctionName: context.functionName,
+			InvocationType: 'Event',
+			LogType: 'Tail',
+			Payload: JSON.stringify(newEvent),
+		};
+		// console.log('\tinvoking lambda', params);
+		const result = await lambda.invoke(params).promise();
+		// console.log('\tinvocation result', result);
+		await sleep(50);
+	}
 };
 
 const dispatchCatchUpEvents = async (context: Context, daysInThePast: number) => {
@@ -52,14 +81,7 @@ const dispatchCatchUpEvents = async (context: Context, daysInThePast: number) =>
 			Payload: JSON.stringify(newEvent),
 		};
 		// console.log('\tinvoking lambda', params);
-		const result = await lambda
-			.invoke({
-				FunctionName: context.functionName,
-				InvocationType: 'Event',
-				LogType: 'Tail',
-				Payload: JSON.stringify(newEvent),
-			})
-			.promise();
+		const result = await lambda.invoke(params).promise();
 		// console.log('\tinvocation result', result);
 		await sleep(50);
 	}

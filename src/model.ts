@@ -46,6 +46,7 @@ export interface DraftDeckStats {
 	readonly playerClass: string;
 	readonly deckImpact: number;
 	readonly deckScore: number;
+	readonly gameMode: 'arena' | 'arena-underground';
 	// Only used for partial decks
 	readonly creationTimestamp?: number;
 	readonly heroCardId?: string;

@@ -3,6 +3,7 @@ import { Connection, createPool } from 'mysql';
 import { InternalArenaMatchStatsDbRow } from '../../internal-model';
 
 export const loadArenaMatches = async (
+	gameMode: 'arena' | 'arena-underground',
 	startDate: Date,
 	endDate: Date,
 ): Promise<readonly InternalArenaMatchStatsDbRow[]> => {
@@ -18,11 +19,12 @@ export const loadArenaMatches = async (
 		database: 'replay_summary',
 		port: secret.port,
 	});
-	return performRowProcessIngPool(pool, startDate, endDate);
+	return performRowProcessIngPool(pool, gameMode, startDate, endDate);
 };
 
 const performRowProcessIngPool = async (
 	pool: any,
+	gameMode: 'arena' | 'arena-underground',
 	startDate: Date,
 	endDate: Date,
 ): Promise<readonly InternalArenaMatchStatsDbRow[]> => {
@@ -32,7 +34,7 @@ const performRowProcessIngPool = async (
 				console.log('error with connection', err);
 				throw new Error('Could not connect to DB');
 			} else {
-				const result = await performRowsProcessing(connection, startDate, endDate);
+				const result = await performRowsProcessing(connection, gameMode, startDate, endDate);
 				connection.release();
 				resolve(result);
 			}
@@ -42,6 +44,7 @@ const performRowProcessIngPool = async (
 
 const performRowsProcessing = async (
 	connection: Connection,
+	gameMode: 'arena' | 'arena-underground',
 	startDate: Date,
 	endDate: Date,
 ): Promise<readonly InternalArenaMatchStatsDbRow[]> => {
@@ -49,11 +52,12 @@ const performRowsProcessing = async (
 		const queryStr = `
 			SELECT playerClass, result, wins, losses, runId
 			FROM arena_match_stats
-			WHERE creationDate >= ?
+			WHERE gameMode = ?
+			AND creationDate >= ?
 			AND creationDate < ?
 		`;
-		console.log('running query', queryStr, [startDate, endDate]);
-		const query = connection.query(queryStr, [startDate, endDate]);
+		console.log('running query', queryStr, [gameMode, startDate, endDate]);
+		const query = connection.query(queryStr, [gameMode, startDate, endDate]);
 
 		const rowsToProcess: InternalArenaMatchStatsDbRow[] = [];
 		query
@@ -64,6 +68,10 @@ const performRowsProcessing = async (
 				console.log('fields', fields);
 			})
 			.on('result', async (row: InternalArenaMatchStatsDbRow) => {
+				// Corrupted data
+				if (gameMode === 'arena' && row.wins >= 5) {
+					return;
+				}
 				rowsToProcess.push(row);
 			})
 			.on('end', async () => {

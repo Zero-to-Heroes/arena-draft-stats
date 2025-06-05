@@ -3,6 +3,10 @@ import { Connection, createPool } from 'mysql';
 import { InternalDraftPickDbRow } from '../../internal-model';
 
 export const loadDraftPicks = async (runIds: readonly string[]): Promise<readonly InternalDraftPickDbRow[]> => {
+	if (!runIds?.length) {
+		return [];
+	}
+
 	const secretRequest: GetSecretValueRequest = {
 		SecretId: 'rds-connection',
 	};

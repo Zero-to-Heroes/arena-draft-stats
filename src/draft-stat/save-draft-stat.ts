@@ -44,9 +44,17 @@ const saveDraftDeckStats = async (input: DraftDeckStats) => {
 
 	const query = `
         INSERT INTO arena_draft_stat
-        (creationDate, userId, playerClass, runId, deckImpact, deckScore)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (creationDate, userId, playerClass, runId, deckImpact, deckScore, gameMode)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-	const queryArgs = [new Date(), input.userId, input.playerClass, input.runId, input.deckImpact, input.deckScore];
+	const queryArgs = [
+		new Date(),
+		input.userId,
+		input.playerClass,
+		input.runId,
+		input.deckImpact,
+		input.deckScore,
+		input.gameMode,
+	];
 	await mysql.query(query, queryArgs);
 };

@@ -25,33 +25,49 @@ export const buildFileNamesForGivenDay = (targetDate: string): readonly string[]
 
 export const buildFileKeys = (
 	granularity: 'hourly' | 'daily',
+	gameMode: 'arena' | 'arena-underground',
 	minWin: number,
 	context: string,
 	fileNames: readonly string[],
 ): readonly string[] => {
 	const fileKeys: readonly string[] = fileNames.map(
-		(fileName) => `${ARENA_STATS_KEY_PREFIX}/${granularity}/${minWin}/${context}/${fileName}.gz.json`,
+		(fileName) => `${ARENA_STATS_KEY_PREFIX}/${gameMode}/${granularity}/${minWin}/${context}/${fileName}.gz.json`,
 	);
 	return fileKeys;
 };
 
 export const getFileKeysToLoad = (
+	gameMode: 'arena' | 'arena-underground' | 'all',
 	timePeriod: TimePeriod,
 	winNumber: number,
 	context: string,
 	patchInfo: PatchInfo,
 	currentSeasonPatchInfo: PatchInfo,
 ): readonly string[] => {
+	if (gameMode === 'all') {
+		return [
+			...getFileKeysToLoad('arena', timePeriod, winNumber, context, patchInfo, currentSeasonPatchInfo),
+			...getFileKeysToLoad(
+				'arena-underground',
+				timePeriod,
+				winNumber,
+				context,
+				patchInfo,
+				currentSeasonPatchInfo,
+			),
+		];
+	}
 	// We want to load:
 	// - the hourly data for the current day
 	// - the daily data for the previous days
 	// - if we're looking at the "last-patch" filter, we load the correct hourly data
 	// for the patch day
-	const currentDayHourlyKeys = getHourlyKeysForCurrentDay(winNumber, context);
+	const currentDayHourlyKeys = getHourlyKeysForCurrentDay(gameMode, winNumber, context);
 	// console.debug('currentDayHourlyKeys', currentDayHourlyKeys);
 	const previousDaysDailyKeys = getDailyKeysForPreviousDays(
 		winNumber,
 		context,
+		gameMode,
 		timePeriod,
 		patchInfo,
 		currentSeasonPatchInfo,
@@ -60,6 +76,7 @@ export const getFileKeysToLoad = (
 	const patchDayHourlyKeys = getHourlyKeysForPatchDay(
 		winNumber,
 		context,
+		gameMode,
 		timePeriod,
 		patchInfo,
 		currentSeasonPatchInfo,
@@ -68,7 +85,11 @@ export const getFileKeysToLoad = (
 	return [...currentDayHourlyKeys, ...previousDaysDailyKeys, ...patchDayHourlyKeys];
 };
 
-const getHourlyKeysForCurrentDay = (winNumber: number, context: string): readonly string[] => {
+const getHourlyKeysForCurrentDay = (
+	gameMode: 'arena' | 'arena-underground',
+	winNumber: number,
+	context: string,
+): readonly string[] => {
 	// Start with the current hour (at 00:00.000), and go back in time
 	// until we get to 00:00 00:00.000 of the current day
 	const now = new Date();
@@ -80,7 +101,7 @@ const getHourlyKeysForCurrentDay = (winNumber: number, context: string): readonl
 		date.setMilliseconds(0);
 		// The date in the format YYYY-MM-ddTHH:mm:ss.sssZ
 		const dateStr = date.toISOString();
-		keys.push(`${ARENA_STATS_KEY_PREFIX}/hourly/${winNumber}/${context}/${dateStr}.gz.json`);
+		keys.push(`${ARENA_STATS_KEY_PREFIX}/${gameMode}/hourly/${winNumber}/${context}/${dateStr}.gz.json`);
 	}
 	return keys;
 };
@@ -88,6 +109,7 @@ const getHourlyKeysForCurrentDay = (winNumber: number, context: string): readonl
 const getDailyKeysForPreviousDays = (
 	winNumber: number,
 	context: string,
+	gameMode: 'arena' | 'arena-underground',
 	timePeriod: TimePeriod,
 	patchInfo: PatchInfo,
 	currentSeasonPatchInfo: PatchInfo,
@@ -95,9 +117,9 @@ const getDailyKeysForPreviousDays = (
 	const firstDate = computeStartDate(timePeriod, patchInfo, currentSeasonPatchInfo);
 	const keys: string[] = [];
 	while (firstDate < new Date()) {
-		firstDate.setDate(firstDate.getDate() + 1);
 		const dateStr = firstDate.toISOString();
-		keys.push(`${ARENA_STATS_KEY_PREFIX}/daily/${winNumber}/${context}/${dateStr}.gz.json`);
+		keys.push(`${ARENA_STATS_KEY_PREFIX}/${gameMode}/daily/${winNumber}/${context}/${dateStr}.gz.json`);
+		firstDate.setDate(firstDate.getDate() + 1);
 	}
 	return keys;
 };
@@ -155,6 +177,7 @@ const computeStartDate = (timePeriod: TimePeriod, patchInfo: PatchInfo, currentS
 const getHourlyKeysForPatchDay = (
 	winNumber: number,
 	context: string,
+	gameMode: 'arena' | 'arena-underground',
 	timePeriod: TimePeriod,
 	patchInfo: PatchInfo,
 	currentSeasonPatchInfo: PatchInfo,
@@ -178,7 +201,7 @@ const getHourlyKeysForPatchDay = (
 		date.setMilliseconds(0);
 		// The date in the format YYYY-MM-ddTHH:mm:ss.sssZ
 		const dateStr = date.toISOString();
-		keys.push(`${ARENA_STATS_KEY_PREFIX}/hourly/${winNumber}/${context}/${dateStr}.gz.json`);
+		keys.push(`${ARENA_STATS_KEY_PREFIX}/${gameMode}/hourly/${winNumber}/${context}/${dateStr}.gz.json`);
 	}
 	return keys;
 };
