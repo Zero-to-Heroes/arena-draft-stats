@@ -85,10 +85,18 @@ const keepOnlyEndedRuns = (rows: readonly InternalArenaMatchStatsDbRow[], minWin
 	const runIds = rows
 		.filter((row) => row.runId)
 		.filter((row) => row.wins >= minWins)
-		.filter((row) => (row.result === 'won' && row.wins === 11) || (row.result === 'lost' && row.losses === 2))
+		.filter((row) => isEnded(row))
 		.map((row) => row.runId);
 	const uniqueRunIds = [...new Set(runIds)];
 	return uniqueRunIds;
+};
+
+const isEnded = (row: InternalArenaMatchStatsDbRow): boolean => {
+	if (row.gameMode === 'arena-underground') {
+		return (row.result === 'won' && row.wins === 11) || (row.result === 'lost' && row.losses === 2);
+	} else {
+		return (row.result === 'won' && row.wins === 4) || (row.result === 'lost' && row.losses === 1);
+	}
 };
 
 const dispatchAllEvents = async (context: Context, event) => {

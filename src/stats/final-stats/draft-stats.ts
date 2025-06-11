@@ -60,21 +60,21 @@ const buildStatsForContext = async (
 			currentSeasonPatchInfo,
 			s3,
 		);
-		// const debugStat = periodStats.flatMap((s) => s.cardStats).find((s) => s.cardId === 'RLK_048');
-		// console.debug(
-		// 	`Loaded ${periodStats.length} stats for ${gameMode} in ${timePeriod} for context ${context} and win number ${winNumber}, debug stat:`,
-		// 	debugStat,
-		// );
+		const debugStat = periodStats.flatMap((s) => s.cardStats).find((s) => s.cardId === 'DMF_226');
+		console.debug(
+			`Loaded ${periodStats.length} stats for ${gameMode} in ${timePeriod} for context ${context} and win number ${winNumber}, debug stat:`,
+			debugStat,
+		);
 		for (const stat of periodStats) {
 			for (const cardStat of stat.cardStats) {
-				// const debug = cardStat.cardId === 'RLK_048';
-				// if (debug) {
-				// 	console.debug(
-				// 		`Processing card stat for ${cardStat.cardId} in ${gameMode} for context ${context} and win number ${winNumber}:`,
-				// 		cardStat,
-				// 	);
-				// 	console.debug(`Current tempStats for ${cardStat.cardId}:`);
-				// }
+				const debug = cardStat.cardId === 'DMF_226';
+				if (debug) {
+					console.debug(
+						`Processing card stat for ${cardStat.cardId} in ${gameMode} for context ${context} and win number ${winNumber}:`,
+						cardStat,
+					);
+					console.debug(`Current tempStats for ${cardStat.cardId}:`);
+				}
 				if (!tempStats[cardStat.cardId]) {
 					tempStats[cardStat.cardId] = {
 						cardId: cardStat.cardId,
@@ -106,7 +106,7 @@ const buildStatsForContext = async (
 		lastUpdateDate: new Date().toISOString(),
 		context: context,
 		stats: combinedStats,
-		dataPoints: combinedStats.map((stat) => stat.statsByWins[0].offered).reduce((a, b) => a + b, 0),
+		dataPoints: combinedStats.map((stat) => stat.statsByWins[0]?.offered ?? 0).reduce((a, b) => a + b, 0),
 	};
 	return result;
 };

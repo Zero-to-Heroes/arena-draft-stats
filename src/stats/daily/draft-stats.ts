@@ -23,8 +23,16 @@ export const buildDailyAggregate = async (
 		console.warn('no data found for', targetDate);
 		return;
 	}
+	const totalCards = hourlyData
+		.flatMap((data) => data.cardStats)
+		.map((stat) => stat.picked)
+		.reduce((a, b) => a + b, 0);
+	console.debug(`Total cards picked for ${gameMode} on ${targetDate}:`, totalCards);
 
 	const mergedStats: DraftCardStat[] = mergeStats(hourlyData.flatMap((data) => data.cardStats));
+	const totalCardsFromMergedStats = mergedStats.map((stat) => stat.picked).reduce((a, b) => a + b, 0);
+	console.debug(`Total cards picked from merged stats for ${gameMode} on ${targetDate}:`, totalCardsFromMergedStats);
+
 	const aggregatedData: DraftStatsByContextAndPeriod = {
 		lastUpdateDate: new Date().toISOString(),
 		context: context,

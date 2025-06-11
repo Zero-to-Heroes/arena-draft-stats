@@ -9,10 +9,12 @@ const s3 = new S3();
 const lambda = new AWS.Lambda();
 
 export default async (event, context: Context): Promise<any> => {
+	console.log('event', event);
 	const cleanup = logBeforeTimeout(context);
 	// await allCards.initializeCardsDb();
 
 	if (event.catchUp) {
+		console.log('dispatching catch-up events for', event.catchUp, 'days in the past', +event.catchUp);
 		await dispatchCatchUpEvents(context, +event.catchUp);
 		cleanup();
 		return;
@@ -28,6 +30,7 @@ export default async (event, context: Context): Promise<any> => {
 	const gameMode: 'arena' | 'arena-underground' = event.gameMode;
 	for (const minWin of MIN_WINS) {
 		for (const context of CONTEXTS) {
+			console.debug('building daily aggregate for', gameMode, minWin, context, targetDate);
 			await buildDailyAggregate(gameMode, minWin, context, targetDate, s3);
 		}
 	}
@@ -67,8 +70,11 @@ const dispatchCatchUpEvents = async (context: Context, daysInThePast: number) =>
 		baseDate.setMinutes(0);
 		baseDate.setSeconds(0);
 		baseDate.setMilliseconds(0);
+		const day = new Date(baseDate.getTime() - i * 24 * 60 * 60 * 1000);
+		days.push(day.toISOString());
 	}
 
+	console.log('daysInThePast', daysInThePast);
 	for (const targetDate of days) {
 		console.log('dispatching catch-up for date', targetDate);
 		const newEvent = {
@@ -80,7 +86,7 @@ const dispatchCatchUpEvents = async (context: Context, daysInThePast: number) =>
 			LogType: 'Tail',
 			Payload: JSON.stringify(newEvent),
 		};
-		// console.log('\tinvoking lambda', params);
+		console.log('\tinvoking lambda', params);
 		const result = await lambda.invoke(params).promise();
 		// console.log('\tinvocation result', result);
 		await sleep(50);

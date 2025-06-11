@@ -8,6 +8,7 @@ export interface InternalArenaMatchStatsDbRow {
 	readonly playerDecklist: string;
 	readonly runId: string;
 	readonly matchAnalysis: string;
+	gameMode: 'arena' | 'arena-underground';
 }
 
 export interface InternalDraftPickDbRow {
